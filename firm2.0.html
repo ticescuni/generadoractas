@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Firmas de Email</title>
+    <!-- Para evitar que los buscadores la indexen -->
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- ===== INICIO: Google Fonts Poppins para la interfaz ===== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- ===== FIN: Google Fonts Poppins para la interfaz ===== -->
+
+    <!-- Incluir los estilos CSS para la interfaz del generador -->
+    <style>
+        /* Definición de colores corporativos en HSL para CSS variables */
+        :root {
+            /* Colores principales */
+            --primary-hex: #26B2DD; /* PANTONE 298C */
+            --primary-rgb-h: 38 178 221;
+            --primary-hsl: 195 76% 51%; /* (HUE SATURATION LIGHTNESS) */
+
+            --secondary-dark-hex: #3A445D; /* PANTONE 7546 C */
+            --secondary-dark-rgb-h: 58 68 93;
+            --secondary-dark-hsl: 220 24% 29%;
+
+            /* Colores secundarios para apoyo/complemento (para UI web) */
+            --accent-green-hex: #1EF0A3; /* PANTONE 333 */
+            --accent-green-rgb-h: 30 240 163;
+            --accent-green-hsl: 154 88% 47%;
+
+            /* Mapeo de colores de Shadcn UI a tus colores corporativos */
+            --background: 0 0% 100%;
+            --foreground: var(--secondary-dark-hsl);
+            --card: 0 0% 100%;
+            --card-foreground: var(--secondary-dark-hsl);
+            --popover: 0 0% 100%;
+            --popover-foreground: var(--secondary-dark-hsl);
+            --primary: var(--primary-hsl);
+            --primary-foreground: 0 0% 100%;
+            --secondary: 220 10% 90%;
+            --secondary-foreground: var(--secondary-dark-hsl);
+            --muted: 220 10% 90%;
+            --muted-foreground: 220 15% 45%;
+            --accent: var(--accent-green-hsl);
+            --accent-foreground: 0 0% 100%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 0 0% 100%;
+            --border: 220 10% 85%;
+            --input: 220 10% 85%;
+            --ring: var(--primary-hsl);
+            --radius: 0.5rem;
+        }
+
+        /* Estilos generales */
+        body {
+            /* ===== MODIFICADO: Aplicar Poppins a toda la página con fallbacks ===== */
+            font-family: 'Poppins', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            line-height: 1.5;
+            color: hsl(var(--foreground));
+            background-color: hsl(var(--background));
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            max-width: 960px; /* max-w-4xl */
+        }
+
+        h1 {
+            font-size: 2.25rem; /* text-3xl */
+            font-weight: 700; /* font-bold */
+            text-align: center;
+            margin-bottom: 2rem; /* mb-8 */
+        }
+
+        h2 {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600; /* font-semibold */
+            margin-bottom: 1rem; /* mb-4 */
+        }
+
+        h3 {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            margin-bottom: 0.5rem; /* mb-2 */
+        }
+
+        .grid { display: grid; }
+        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .md\:grid-cols-2 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+        @media (min-width: 768px) {
+            .md\:grid-cols-2 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        .gap-4 { gap: 1rem; }
+        .gap-8 { gap: 3rem; } /* MODIFICADO: Aumentado de 2rem a 3rem para mayor separación entre columnas */
+        .space-y-4 > *:not([hidden]) ~ *:not([hidden]) { margin-top: 1rem; }
+        .space-y-1 > *:not([hidden]) ~ *:not([hidden]) { margin-top: 0.25rem; }
+
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-8 { margin-bottom: 2rem; }
+        .mt-4 { margin-top: 1rem; }
+        .mt-8 { margin-top: 2rem; }
+        .mr-2 { margin-right: 0.5rem; }
+
+        .w-full { width: 100%; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .text-center { text-align: center; }
+        .text-red-500 { color: hsl(var(--destructive)); }
+        .text-green-500 { color: hsl(var(--accent)); }
+        .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+        .list-decimal { list-style-type: decimal; }
+        .list-inside { list-style-position: inside; }
+
+        /* Card styles */
+        .card {
+            border-radius: var(--radius);
+            border: 1px solid hsl(var(--border));
+            background-color: hsl(var(--card));
+            color: hsl(var(--card-foreground));
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+        }
+        .card.p-6 { padding: 1.5rem; }
+        .card.mb-4 { margin-bottom: 1rem; }
+        .card.bg-gray-50 { background-color: hsl(var(--muted), 0.5); }
+        .p-4.bg-gray-100.rounded-md.card { background-color: hsl(var(--muted) / 0.5); }
+
+
+        /* Label styles */
+        label {
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            font-weight: 500; /* Poppins medium */
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Input styles */
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="url"] {
+            display: flex;
+            height: 2.5rem;
+            width: 100%;
+            border-radius: var(--radius);
+            border: 1px solid hsl(var(--input));
+            background-color: hsl(var(--background));
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem; /* Poppins regular (400) heredado del body */
+            line-height: 1.25rem;
+            color: hsl(var(--foreground));
+            ring-offset-color: hsl(var(--background));
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            transition: border-color 0.2s, box-shadow 0.2s, outline-color 0.2s;
+        }
+        input::placeholder { /* Para que el placeholder también tome la fuente si no la hereda bien */
+            font-family: 'Poppins', sans-serif;
+        }
+
+        input[type="text"]:focus-visible,
+        input[type="email"]:focus-visible,
+        input[type="tel"]:focus-visible,
+        input[type="url"]:focus-visible {
+            outline-color: hsl(var(--ring));
+            outline-offset: 2px;
+            border-color: hsl(var(--ring));
+        }
+        input[type="text"]:disabled,
+        input[type="email"]:disabled,
+        input[type="tel"]:disabled,
+        input[type="url"]:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* Button styles */
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 500; /* Poppins medium */
+            height: 2.5rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            border: 1px solid transparent;
+        }
+
+        .button.w-full { width: 100%; }
+
+        .button.default {
+            background-color: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+        }
+        .button.default:hover {
+            background-color: hsl(var(--primary) / 0.9);
+        }
+
+        .button.outline {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            border-color: hsl(var(--input));
+        }
+        .button.outline:hover {
+            background-color: hsl(var(--accent));
+            color: hsl(var(--accent-foreground));
+            border-color: hsl(var(--accent));
+        }
+
+        .button:focus-visible {
+            outline: 2px solid hsl(var(--ring));
+            outline-offset: 2px;
+        }
+        .button:disabled {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        /* Alert styles */
+        .alert {
+            position: relative;
+            width: 100%;
+            border-radius: var(--radius);
+            border: 1px solid hsl(var(--border));
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            color: hsl(var(--foreground));
+        }
+        .alert.bg-red-50 {
+            background-color: hsl(var(--destructive) / 0.1);
+            border-color: hsl(var(--destructive) / 0.3);
+            color: hsl(var(--foreground));
+        }
+        .alert.bg-green-50 {
+            background-color: hsl(var(--accent) / 0.1);
+            border-color: hsl(var(--accent) / 0.3);
+            color: hsl(var(--foreground));
+        }
+        .alert-description {
+            line-height: 1.5;
+        }
+        .alert-icon {
+            flex-shrink: 0;
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+
+        /* Styles for the generated email signature */
+        .preview-area {
+            word-break: break-all;
+        }
+
+        /* Responsive styles for email signature (already in your original code) */
+        @media only screen and (max-width: 480px) {
+            .email-signature {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            .email-signature img {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            .email-signature td {
+                font-size: 12px !important;
+            }
+            .signature-name {
+                font-size: 14px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Generador de Firmas de Email</h1>
+
+        <div class="grid md:grid-cols-2 gap-8">
+            <div>
+                <h2>Datos para tu firma</h2>
+                <form id="signatureForm">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="fullName">Nombre Completo <span class="text-red-500">*</span></label>
+                            <input type="text" id="fullName" name="fullName" placeholder="ej.:Juan Pérez" required />
+                        </div>
+
+                        <div>
+                            <label for="jobTitle">Cargo / Departamento</label>
+                            <input type="text" id="jobTitle" name="jobTitle" placeholder="ej.:Coordinador Dto.TIC" />
+                        </div>
+
+                        <div hidden>
+                            <label for="phone">Teléfono</label>
+                            <input type="tel" id="phone" name="phone" value="91 465 17 00" readonly />
+                        </div>
+
+                        <div>
+                            <label for="extension">Extensión (3 dígitos)</label>
+                            <input type="tel" id="extension" name="extension" placeholder="ej.: 123"
+                                   pattern="[0-9]{3}"
+                                   title="La extensión debe contener 3 dígitos numéricos (0-9)." />
+                        </div>
+
+                        <div>
+                            <label for="mobile">Móvil (opcional)</label>
+                            <input type="tel" id="mobile" name="mobile" placeholder="ej.: 600123456"
+                                   pattern="[0-9]{9}"
+                                   title="El móvil debe contener 9 dígitos numéricos (0-9)." />
+                        </div>
+
+                        <div>
+                            <label for="email">Email <span class="text-red-500">*</span></label>
+                            <input type="email" id="email" name="email" placeholder="ej.: juan@escuni.es" required />
+                        </div>
+
+                        <div hidden>
+                            <label for="website">Sitio Web</label>
+                            <input type="url" id="website" name="website" value="www.escuni.es" readonly />
+                        </div>
+
+                        <div hidden>
+                            <label for="address">Dirección del Centro</label>
+                            <input type="text" id="address" name="address" value="Avda. Nuestra Señora de Fátima 102" readonly />
+                        </div>
+
+                        <div hidden>
+                            <label for="logoUrl">URL del Logo</label>
+                            <input type="url" id="logoUrl" name="logoUrl" value="https://www.escuni.es/wp-content/uploads/2025/06/logo-firma-1.png" readonly />
+                        </div>
+
+                        <div>
+                            <label for="orcid">ORCID ID (opcional)</label>
+                            <input type="text" id="orcid" name="orcid" placeholder="ej.: 0000-0000-0000-0000" />
+                        </div>
+
+                        <button type="submit" id="generateButton" class="button default w-full">
+                            Generar Firmas
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div>
+                <!-- ===== INICIO: Firma Principal ===== -->
+                <h2>Vista Previa (Firma Principal)</h2>
+                <div id="signaturePreviewContainer" hidden class="card p-6 mb-4 bg-gray-50">
+                    <div id="previewArea" class="preview-area" >
+                        <!-- La firma principal se generará aquí -->
+                    </div>
+                </div>
+                <div id="signatureActions" class="space-y-4" style="display: none;">
+                    <button type="button" id="copyRenderedButton" class="button default w-full flex items-center justify-center">
+                        Copiar Firma Principal
+                    </button>
+                    <div class="mt-4 p-4 rounded-md card">
+                        <h3 class="font-semibold mb-2">&nbsp&nbspInstrucciones para Gmail:</h3>
+                        <ol class="list-decimal list-inside space-y-1 text-sm">
+                            <li>Copia la firma deseada.</li>
+                            <li>Ve a Gmail → Configuración (⚙️) → Ver toda la configuración.</li>
+                            <li>En la sección "Firma", crea o edita una firma.</li>
+                            <li>Pega la firma copiada en el editor.</li>
+                            <li>Configura la firma para correos nuevos y/o para respuestas/reenvíos.</li>
+                            <li>Guarda los cambios al final de la página.</li>
+                        </ol>
+                    </div>
+                </div>
+                <!-- ===== FIN: Firma Principal ===== -->
+                
+                <!-- ===== INICIO: Firma para Respuestas ===== -->
+                <div id="replySignatureContainer" style="display: none;" class="mt-8">
+                    <h2>Vista Previa (Firma para Respuestas)</h2>
+                    <div class="card p-6 mb-4 bg-gray-50">
+                        <div id="replyPreviewArea" class="preview-area">
+                            <!-- La firma para respuestas se generará aquí -->
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <button type="button" id="copyReplyButton" class="button default w-full flex items-center justify-center">
+                            Copiar Firma para Respuestas
+                        </button>
+                    </div>
+                </div>
+                <!-- ===== FIN: Firma para Respuestas ===== -->
+
+                <!-- Alerta de éxito unificada -->
+                <div id="copySuccessAlert" class="alert mt-4" style="display: none;">
+                    <span class="alert-icon"></span>
+                    <div class="alert-description"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables de estado
+        let formData = {
+            fullName: "",
+            jobTitle: "",
+            phone: "914651700",
+            mobile: "",
+            email: "",
+            logoUrl: "https://www.escuni.es/wp-content/uploads/2025/06/logo-firma-1.png",
+            extension: "",
+            address: "Avda. Nuestra Señora de Fátima 102, 28047, Madrid",
+            website: "www.escuni.es",
+            orcid: "",
+        };
+
+        let signature = "";
+        let replySignature = "";
+        let copySuccess = "";
+
+        // Referencias del DOM
+        const signatureForm = document.getElementById('signatureForm');
+        const editableInputs = document.querySelectorAll('#signatureForm input[name]:not([readonly])');
+        
+        // Elementos firma principal
+        const previewArea = document.getElementById('previewArea');
+        const signaturePreviewContainer = document.getElementById('signaturePreviewContainer');
+        const signatureActions = document.getElementById('signatureActions');
+        const copyRenderedButton = document.getElementById('copyRenderedButton');
+        
+        // Elementos firma para respuestas
+        const replySignatureContainer = document.getElementById('replySignatureContainer');
+        const replyPreviewArea = document.getElementById('replyPreviewArea');
+        const copyReplyButton = document.getElementById('copyReplyButton');
+
+        // Alerta
+        const copySuccessAlert = document.getElementById('copySuccessAlert');
+        const copySuccessIcon = copySuccessAlert.querySelector('.alert-icon');
+        const copySuccessDescription = copySuccessAlert.querySelector('.alert-description');
+
+        const checkCircleIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>`;
+        const alertCircleIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`;
+
+        function showNotification(message, isError = false) {
+            copySuccessAlert.style.display = 'flex';
+            copySuccessDescription.textContent = message;
+
+            if (isError) {
+                copySuccessAlert.classList.add('bg-red-50');
+                copySuccessAlert.classList.remove('bg-green-50');
+                copySuccessIcon.innerHTML = alertCircleIcon;
+            } else {
+                copySuccessAlert.classList.add('bg-green-50');
+                copySuccessAlert.classList.remove('bg-red-50');
+                copySuccessIcon.innerHTML = checkCircleIcon;
+            }
+            
+            setTimeout(() => {
+                copySuccessAlert.style.display = 'none';
+            }, 3000);
+        }
+
+        function handleInputChange(event) {
+            formData = { ...formData, [event.target.name]: event.target.value };
+        }
+
+        function generateSignatures() {
+            if (!formData.fullName || !formData.email) {
+                showNotification("Por favor, completa los campos obligatorios (Nombre y Email).", true);
+                return;
+            }
+
+            const signatureFontFamily = "'Poppins', Arial, sans-serif";
+            const signatureGoogleFontImportUrl = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap';
+
+            // --- Generar Firma Principal ---
+            generateMainSignature(signatureFontFamily, signatureGoogleFontImportUrl);
+            
+            // --- Generar Firma para Respuestas ---
+            generateReplySignature(signatureFontFamily, signatureGoogleFontImportUrl);
+
+            // Mostrar contenedores
+            signaturePreviewContainer.hidden = false;
+            signatureActions.style.display = 'block';
+            replySignatureContainer.style.display = 'block';
+        }
+
+        function generateMainSignature(font, importUrl) {
+            const html = `
+              <style type="text/css">@import url('${importUrl}');</style>
+              <table cellpadding="0" cellspacing="0" style="font-family: ${font}; color: #333333; font-size: 12px; line-height: 1.4; border-collapse: collapse; width: 100%; max-width: 280px; min-width: 250px; background-color: #ffffff;">
+                ${formData.logoUrl ? `<tr><td style="padding-bottom: 12px;"><img src="${formData.logoUrl}" alt="Logo" style="max-width: 100%; width: auto; height: auto; display: block; max-height: 50px;" /></td></tr>` : ""}
+                <tr><td style="padding-bottom: 6px; font-family: ${font};"><div style="font-size: 14px; font-weight: 700; color: #3A445D; margin-bottom: 4px; line-height: 1.2; font-family: ${font};">${formData.fullName}</div>${formData.jobTitle ? `<div style="color: #26B2DD; font-weight: 700; margin-bottom: 2px; font-size: 12px; line-height: 1.3; font-family: ${font};">${formData.jobTitle}</div>` : ""}<div style="color: #3A445D; margin-bottom: 2px; font-size: 12px; line-height: 1.3; font-family: ${font};"></div></td></tr>
+                <tr><td style="padding-bottom: 8px; font-family: ${font};">${formData.email ? `<div style="margin-bottom: 4px; word-break: break-word; font-family: ${font};"><a href="mailto:${formData.email}" style="color: #666666; text-decoration: none; font-size: 11px; font-family: ${font};">${formData.email}</a></div>` : ""}${formData.phone ? `<div style="margin-bottom: 2px; color: #666666; font-size: 10px; font-family: ${font};"> <a href="tel:${formData.phone.replace(/\s/g, "")}" style="color: #666666; text-decoration: none; font-family: ${font};">${formData.phone}</a>${formData.extension ? ` ext.${formData.extension}` : ''}</div>` : ""}${formData.mobile ? `<div style="margin-bottom: 2px; color: #666666; font-size: 10px; font-family: ${font};"> <a href="tel:${formData.mobile.replace(/\s/g, "")}" style="color: #666666; text-decoration: none; font-family: ${font};">${formData.mobile}</a></div>` : ""}${formData.website ? `<div style="margin-bottom: 2px; color: #666666; font-size: 10px; word-break: break-word; font-family: ${font};"><a href="${formData.website.startsWith("http") ? formData.website : "https://" + formData.website}" target="_blank" style="color: #666666; text-decoration: none; font-family: ${font};">${formData.website}</a></div>` : ""}${formData.address ? `<div style="margin-bottom: 2px; color: #666666; font-size: 10px; font-family: ${font};">${formData.address}</div>` : ""}${formData.orcid ? `<div style="margin-bottom: 2px; color: #666666; font-size: 10px; font-family: ${font};">ORCID: <a href="https://orcid.org/${formData.orcid}" target="_blank" style="color: #0066cc; text-decoration: none; font-family: ${font};">https://orcid.org/${formData.orcid}</a></div>` : ""}</td></tr>
+              </table>`;
+            signature = html;
+            previewArea.innerHTML = signature;
+        }
+
+        function generateReplySignature(font, importUrl) {
+            const replyLogoUrl = 'https://lh6.googleusercontent.com/proxy/GwTItIRG4cSyI_fB8ENlwnjSMjkb-bqZB6KW1hv_8Qti1f2hsrrQA-Xx_KSuDIIWDs8YeP_bJsAoz6j1kjW83aYxeIa7BbPslMA4nge_KruYT7w=w1920-h919';
+            
+            const html = `
+              <style type="text/css">@import url('${importUrl}');</style>
+              <table cellpadding="0" cellspacing="0" style="font-family: ${font}; font-size: 11px; border-collapse: collapse; background-color: #ffffff;">
+                <tbody>
+                  <tr>
+                    <td style="vertical-align: top; padding-right: 12px;">
+                      <img src="${replyLogoUrl}" alt="Logo" width="40" style="width: 40px; height: auto; display: block;">
+                    </td>
+                    <td style="vertical-align: top;">
+                      <div style="border-top: 1px solid #3A445D; margin-bottom: 5px;"></div>
+                      <div style="font-size: 12px; font-weight: 700; color: #3A445D; line-height: 1.2; font-family: ${font}; margin-bottom: 3px;">${formData.fullName}</div>
+                      ${formData.jobTitle ? `<div style="font-size: 11px; font-weight: 700; color: #26B2DD; line-height: 1.3; font-family: ${font};">${formData.jobTitle}</div>` : ''}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>`;
+            replySignature = html;
+            replyPreviewArea.innerHTML = replySignature;
+        }
+
+        function copyRendered(element, successMessage) {
+            if (element) {
+                const range = document.createRange();
+                range.selectNode(element);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+
+                try {
+                    document.execCommand("copy");
+                    window.getSelection().removeAllRanges();
+                    showNotification(successMessage, false);
+                } catch (err) {
+                    showNotification("Error al copiar: " + err, true);
+                }
+            }
+        }
+
+        editableInputs.forEach(input => {
+            input.addEventListener('input', handleInputChange);
+        });
+
+        signatureForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            generateSignatures();
+        });
+
+        copyRenderedButton.addEventListener('click', () => {
+            copyRendered(previewArea, '¡Firma Principal copiada!');
+        });
+
+        copyReplyButton.addEventListener('click', () => {
+            copyRendered(replyPreviewArea, '¡Firma para respuestas copiada!');
+        });
+
+    </script>
+</body>
+</html>
