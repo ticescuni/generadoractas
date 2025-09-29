@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Actas Corporativo</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --azul-principal: #26B2DD;
+            --azul-oscuro: #3A445D;
+            --fuente-principal: 'Poppins', sans-serif;
+            --header-bg: #f8f9fa; 
+        }
+        body {
+            background-color: #e9ecef;
+            font-family: var(--fuente-principal);
+        }
+        
+        .app-header {
+            background-color: var(--header-bg);
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .app-header h1 {
+            color: var(--azul-oscuro);
+            font-weight: 600;
+        }
+        
+        #interfaz-formulario .card-title {
+            color: var(--azul-oscuro);
+            font-weight: 600;
+            border-bottom: 2px solid var(--azul-principal);
+            padding-bottom: 0.5rem;
+        }
+        #interfaz-formulario .card {
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        #interfaz-formulario .form-label {
+            color: var(--azul-oscuro);
+            font-weight: 600;
+        }
+        .btn-primary { background-color: var(--azul-principal); border-color: var(--azul-principal); }
+        .btn-secondary { background-color: var(--azul-oscuro); border-color: var(--azul-oscuro); }
+    </style>
+</head>
+<body>
+
+    <header class="app-header">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <img src="" alt="Logo Corporativo" style="height: 40px; display: none;" id="header-logo">
+                <h1 class="flex-grow-1 text-center m-0">Generador de Actas de Reunión</h1>
+            </div>
+        </div>
+    </header>
+
+    <div id="interfaz-formulario" class="container">
+        <div class="card p-4 mb-4">
+            <h2 class="card-title">1. Información General</h2>
+            <div class="mb-3"><label for="titulo" class="form-label">Título del Acta:</label><input type="text" class="form-control" id="titulo"></div>
+            <div class="mb-3"><label for="entidad" class="form-label">Entidad que convoca:</label><input type="text" class="form-control" id="entidad"></div>
+            <div class="row">
+                <div class="col-md-4 mb-3"><label for="fecha" class="form-label">Fecha:</label><input type="date" class="form-control" id="fecha"></div>
+                <div class="col-md-4 mb-3"><label for="hora" class="form-label">Hora:</label><input type="time" class="form-control" id="hora"></div>
+                <div class="col-md-4 mb-3"><label for="lugar" class="form-label">Lugar:</label><input type="text" class="form-control" id="lugar"></div>
+            </div>
+        </div>
+        <div class="card p-4 mb-4">
+            <h2 class="card-title">2. Lista de Asistentes</h2>
+            <div id="lista-asistentes"></div>
+            <button id="btn-agregar-asistente" class="btn btn-secondary mt-2 align-self-start">Agregar Asistente</button>
+        </div>
+        <div class="card p-4 mb-4">
+            <h2 class="card-title">3. Temas Tratados y Acuerdos</h2>
+            <div id="lista-temas"></div>
+            <button id="btn-agregar-tema" class="btn btn-secondary mt-2 align-self-start">Agregar Tema</button>
+        </div>
+        <div class="text-center my-4">
+            <button id="btn-generar-pdf" class="btn btn-primary btn-lg px-5">Generar y Descargar Acta en PDF</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // ==========================================================
+        // --- URL DEL LOGO CORREGIDA A UNA VERSIÓN FUNCIONAL ---
+        const logoUrl = "https://i.imgur.com/sO9vB6G.png";
+        // ==========================================================
+
+        const logoDisplayElement = document.getElementById('header-logo');
+        if (logoUrl) {
+            logoDisplayElement.src = logoUrl;
+            logoDisplayElement.style.display = 'inline-block';
+        }
+        
+        const generarPDF = async () => {
+            const btn = document.getElementById('btn-generar-pdf');
+            if (document.getElementById('titulo').value.trim() === '') {
+                alert('Por favor, complete el Título del Acta.'); return;
+            }
+            btn.disabled = true;
+            btn.innerText = 'Generando PDF...';
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const pageHeight = doc.internal.pageSize.height;
+                const pageWidth = doc.internal.pageSize.width;
+                const margin = 20;
+                let yPos = margin; 
+
+                let logoBase64 = null;
+                if (logoUrl) {
+                    try { logoBase64 = await loadImageAsBase64(logoUrl); } 
+                    catch (error) { console.error(error.message); }
+                }
+                
+                const addHeader = () => {
+                    if (logoBase64) {
+                        const logoProps = doc.getImageProperties(logoBase64);
+                        const logoHeight = 12; 
+                        const logoWidth = (logoProps.width * logoHeight) / logoProps.height;
+                        doc.addImage(logoBase64, 'PNG', margin, 15, logoWidth, logoHeight);
+                    }
+                    doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.setTextColor('#3A445D');
+                    doc.text("Acta de Reunión", pageWidth - margin, 22, { align: 'right' });
+                    doc.setDrawColor('#26B2DD'); doc.line(margin, 35, pageWidth - margin, 35); yPos = 45;
+                };
+                const addFooter = (page, total) => {
+                    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(150);
+                    doc.text(`Página ${page} de ${total}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+                };
+                const checkPageBreak = (neededHeight) => {
+                    if (yPos + neededHeight > pageHeight - margin) { doc.addPage(); addHeader(); }
+                };
+
+                addHeader();
+                
+                const titulo = document.getElementById('titulo').value;
+                doc.setFontSize(22); doc.setFont('helvetica', 'bold'); doc.setTextColor('#3A445D');
+                const splitTitulo = doc.splitTextToSize(titulo, pageWidth - margin * 2);
+                doc.text(splitTitulo, pageWidth / 2, yPos, { align: 'center' });
+                yPos += (splitTitulo.length * 10) + 10;
+                
+                doc.setFillColor(248, 249, 250); doc.setDrawColor(222, 226, 230); doc.roundedRect(margin, yPos, pageWidth - margin * 2, 22, 3, 3, 'FD');
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(50);
+                doc.text(`Entidad: ${document.getElementById('entidad').value || 'N/A'}`, margin + 5, yPos + 7);
+                doc.text(`Lugar: ${document.getElementById('lugar').value || 'N/A'}`, margin + 5, yPos + 14);
+                doc.text(`Fecha: ${document.getElementById('fecha').value || 'N/A'}`, pageWidth / 2, yPos + 7);
+                doc.text(`Hora: ${document.getElementById('hora').value || 'N/A'}`, pageWidth / 2, yPos + 14);
+                yPos += 32;
+
+                doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.setTextColor('#3A445D');
+                doc.text('Asistentes', margin, yPos);
+                doc.setDrawColor('#26B2DD'); doc.line(margin, yPos + 2, margin + 25, yPos + 2);
+                yPos += 10;
+                doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+                document.querySelectorAll('.asistente-input').forEach(input => { if (input.value.trim() !== '') { checkPageBreak(7); doc.text(`• ${input.value.trim()}`, margin, yPos); yPos += 7; } });
+                yPos += 10;
+
+                doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.setTextColor('#3A445D');
+                doc.text('Orden del Día y Acuerdos', margin, yPos);
+                doc.setDrawColor('#26B2DD'); doc.line(margin, yPos + 2, margin + 50, yPos + 2);
+                yPos += 10;
+                document.querySelectorAll('.tema-item').forEach(item => { const temaTitulo = item.querySelector('.tema-titulo-input').value.trim(); const temaDesc = item.querySelector('.tema-descripcion-input').value.trim(); if (temaTitulo) { checkPageBreak(15); doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor('#3A445D'); doc.text(temaTitulo, margin, yPos); yPos += 7; if (temaDesc) { doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(80); const splitDesc = doc.splitTextToSize(temaDesc, pageWidth - margin * 2); checkPageBreak(splitDesc.length * 5); doc.text(splitDesc, margin, yPos); yPos += (splitDesc.length * 5) + 8; } } });
+                
+                const totalPages = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) { doc.setPage(i); addFooter(i, totalPages); }
+                
+                doc.save(`${titulo.replace(/ /g, '_') || 'acta'}.pdf`);
+
+            } catch (error) {
+                console.error("Error al generar el PDF:", error);
+                alert("No se pudo generar el PDF. Revisa la consola (F12).");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Generar y Descargar Acta en PDF';
+            }
+        };
+
+        document.getElementById('btn-agregar-asistente').addEventListener('click', function() { const div = document.createElement('div'); div.classList.add('input-group', 'mb-3'); div.innerHTML = `<input type="text" class="form-control asistente-input" placeholder="Nombre completo del asistente"><button class="btn btn-danger" type="button">Eliminar</button>`; document.getElementById('lista-asistentes').appendChild(div); });
+        document.getElementById('btn-agregar-tema').addEventListener('click', function() { const div = document.createElement('div'); div.classList.add('tema-item', 'mb-3', 'p-3', 'border', 'rounded'); div.innerHTML = `<div class="input-group mb-2"><input type="text" class="form-control tema-titulo-input" placeholder="Título del tema"><button class="btn btn-danger" type="button">Eliminar Tema</button></div><textarea class="form-control tema-descripcion-input" rows="3" placeholder="Descripción y acuerdos..."></textarea>`; document.getElementById('lista-temas').appendChild(div); });
+        document.body.addEventListener('click', function(e) { if (e.target.classList.contains('btn-danger')) { e.target.closest('.input-group, .tema-item').remove(); } });
+        document.getElementById('btn-generar-pdf').addEventListener('click', generarPDF);
+
+        function loadImageAsBase64(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.onerror = () => reject(new Error('No se pudo cargar la imagen desde la URL. Verifica que el enlace sea correcto y que el servidor de la imagen permita su uso (CORS).'));
+                img.src = url;
+            });
+        }
+    });
+    </script>
+</body>
+</html>
